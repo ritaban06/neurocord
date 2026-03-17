@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: neurocord
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DISCORD_PUBLIC_KEY
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: DISCORD_APPLICATION_ID
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
