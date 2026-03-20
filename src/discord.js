@@ -1,5 +1,15 @@
 'use strict';
 
+class DiscordWebhookError extends Error {
+    constructor(message, status, code, rawBody) {
+        super(message);
+        this.name = 'DiscordWebhookError';
+        this.status = status;
+        this.code = code;
+        this.rawBody = rawBody;
+    }
+}
+
 /**
  * Sends a follow-up message to Discord after a deferred interaction.
  * This PATCH replaces the original "Bot is thinking…" placeholder.
@@ -24,8 +34,27 @@ async function sendFollowUp(interactionToken, content) {
 
     if (!response.ok) {
         const text = await response.text();
-        throw new Error(`Discord follow-up failed (${response.status}): ${text}`);
+
+        let discordCode;
+        try {
+            const parsed = JSON.parse(text);
+            discordCode = parsed?.code;
+        } catch {
+            // Keep discordCode undefined when body is not JSON.
+        }
+
+        throw new DiscordWebhookError(
+            `Discord follow-up failed (${response.status}): ${text}`,
+            response.status,
+            discordCode,
+            text
+        );
     }
+}
+
+function isExpiredInteractionWebhookError(err) {
+    // Discord code 10015 = Unknown Webhook (typically expired interaction token).
+    return Boolean(err && err.code === 10015);
 }
 
 /**
@@ -40,9 +69,18 @@ async function sendError(interactionToken, message) {
         message || '⚠️ Something went wrong while processing your request. Please try again.';
 
     await sendFollowUp(interactionToken, errorText).catch((err) => {
+        if (isExpiredInteractionWebhookError(err)) {
+            console.warn('Skipping error follow-up: interaction token expired before response could be sent.');
+            return;
+        }
+
         // If even the error follow-up fails, just log it — nothing more we can do.
         console.error('Failed to send error follow-up:', err.message);
     });
 }
 
-module.exports = { sendFollowUp, sendError };
+module.exports = {
+    sendFollowUp,
+    sendError,
+    isExpiredInteractionWebhookError,
+};

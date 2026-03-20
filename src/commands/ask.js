@@ -1,7 +1,7 @@
 'use strict';
 
 const { askGroq } = require('../groq');
-const { sendFollowUp, sendError } = require('../discord');
+const { sendFollowUp, sendError, isExpiredInteractionWebhookError } = require('../discord');
 
 /**
  * Handles the /ask slash command.
@@ -42,6 +42,12 @@ async function handleAskCommand(interaction, res) {
         await sendFollowUp(token, aiResponse);
     } catch (err) {
         console.error('[/ask] Error:', err.message);
+
+        if (isExpiredInteractionWebhookError(err)) {
+            console.warn('[/ask] Interaction token expired before follow-up could be sent (likely cold start delay).');
+            return;
+        }
+
         await sendError(token, '⚠️ Failed to get a response from the AI. Please try again later.');
     }
 }
