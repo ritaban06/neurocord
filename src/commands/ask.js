@@ -113,7 +113,7 @@ async function handleAskCommand(interaction, res) {
         return res.json({
             type: 4,
             data: {
-                content: `Social phrases: ${socialReply}`,
+                content: `${socialReply}`,
                 flags: 64,
             },
         });
