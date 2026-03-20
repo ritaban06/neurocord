@@ -1,6 +1,7 @@
 'use strict';
 
 const { askGroq } = require('../groq');
+const { isGibberish, getSocialReply } = require('../gibberish');
 const { sendFollowUp, sendError, isExpiredInteractionWebhookError } = require('../discord');
 
 /**
@@ -26,6 +27,27 @@ async function handleAskCommand(interaction, res) {
         return res.json({
             type: 4,
             data: { content: '❌ Please provide a question. Usage: `/ask question:<your question>`' },
+        });
+    }
+
+    const socialReply = getSocialReply(question);
+    if (socialReply) {
+        return res.json({
+            type: 4,
+            data: {
+                content: `Social phrases: ${socialReply}`,
+                flags: 64,
+            },
+        });
+    }
+
+    if (isGibberish(question)) {
+        return res.json({
+            type: 4,
+            data: {
+                content: '⚠️ Please send a clearer question so I can help.',
+                flags: 64,
+            },
         });
     }
 
