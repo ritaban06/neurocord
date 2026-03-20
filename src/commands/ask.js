@@ -9,11 +9,14 @@ const USER_COOLDOWN_MS = 8000;
 const RECENT_DUPLICATE_WINDOW_MS = 60000;
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const MAX_CACHE_ENTRIES = 200;
+const MAX_DAILY_AI_REQUESTS_PER_USER = 30;
+const MAX_GLOBAL_INFLIGHT_REQUESTS = 5;
 
 const userCooldown = new Map();
 const userLastQuestion = new Map();
 const responseCache = new Map();
 const inFlightQuestions = new Set();
+const userDailyUsage = new Map();
 
 function getUserId(interaction) {
     return interaction.member?.user?.id || interaction.user?.id || 'unknown-user';
@@ -21,9 +24,39 @@ function getUserId(interaction) {
 
 function normalizeQuestion(question) {
     return String(question)
-        .trim()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/(.)\1{3,}/g, '$1$1')
         .toLowerCase()
-        .replace(/\s+/g, ' ');
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function getUtcDayKey(timestamp) {
+    return new Date(timestamp).toISOString().slice(0, 10);
+}
+
+function getUserDailyCount(userId, now) {
+    const dayKey = getUtcDayKey(now);
+    const usage = userDailyUsage.get(userId);
+
+    if (!usage || usage.dayKey !== dayKey) {
+        userDailyUsage.set(userId, { dayKey, count: 0 });
+        return 0;
+    }
+
+    return usage.count;
+}
+
+function incrementUserDailyCount(userId, now) {
+    const dayKey = getUtcDayKey(now);
+    const usage = userDailyUsage.get(userId);
+
+    if (!usage || usage.dayKey !== dayKey) {
+        userDailyUsage.set(userId, { dayKey, count: 1 });
+        return;
+    }
+
+    usage.count += 1;
 }
 
 function pruneExpiredCache(now) {
@@ -143,6 +176,27 @@ async function handleAskCommand(interaction, res) {
         });
     }
 
+    const dailyCount = getUserDailyCount(userId, now);
+    if (dailyCount >= MAX_DAILY_AI_REQUESTS_PER_USER) {
+        return res.json({
+            type: 4,
+            data: {
+                content: `🚦 Daily AI limit reached (${MAX_DAILY_AI_REQUESTS_PER_USER}/day). Please try again tomorrow UTC.`,
+                flags: 64,
+            },
+        });
+    }
+
+    if (inFlightQuestions.size >= MAX_GLOBAL_INFLIGHT_REQUESTS) {
+        return res.json({
+            type: 4,
+            data: {
+                content: '🚦 Bot is busy right now. Please retry in a few seconds.',
+                flags: 64,
+            },
+        });
+    }
+
     if (inFlightQuestions.has(normalizedQuestion)) {
         return res.json({
             type: 4,
@@ -162,6 +216,7 @@ async function handleAskCommand(interaction, res) {
     const token = interaction.token;
     userCooldown.set(userId, now);
     userLastQuestion.set(userId, { text: normalizedQuestion, timestamp: now });
+    incrementUserDailyCount(userId, now);
     inFlightQuestions.add(normalizedQuestion);
 
     try {
