@@ -24,8 +24,8 @@ async function askGroq(userQuestion) {
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'user', content: userQuestion },
         ],
-        // Limit response length — Discord messages cap out at 2000 characters.
-        max_tokens: 1800,
+        // Keep responses concise and reduce token usage.
+        max_tokens: 900,
         temperature: 0.7,
     });
 
