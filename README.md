@@ -143,7 +143,7 @@ Copy the generated URL, open it in a browser, and add the bot to your server.
 ## Usage
 
 ```
-/ask question:What is the meaning of life?
-/ask question:Write a Python function to reverse a string
-/ask question:Explain quantum entanglement in simple terms
+/ask:What is the meaning of life?
+/ask:Write a Python function to reverse a string
+/ask:Explain quantum entanglement in simple terms
 ```
