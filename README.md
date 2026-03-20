@@ -10,7 +10,7 @@ A production-ready Discord AI chatbot powered by **GROQ** (llama-3.1-8b-instant)
 
 ## How It Works
 
-1. User types `/ask question:<anything>` in Discord
+1. User types `/ask:<anything>` in Discord
 2. Discord sends an HTTP POST to your server's `/interactions` endpoint
 3. The server immediately responds with a **deferred response** (type 5) → Discord shows "Bot is thinking…"
 4. The server asynchronously calls **GROQ API** to get the AI response
