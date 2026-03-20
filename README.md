@@ -1,6 +1,6 @@
 # NeuroCord 
 
-A production-ready Discord AI chatbot powered by **GROQ** (llama3-70b-8192), built with **Express.js** and the **Discord Interactions API** (slash commands over HTTP — no WebSocket required).
+A production-ready Discord AI chatbot powered by **GROQ** (llama-3.1-8b-instant), built with **Express.js** and the **Discord Interactions API** (slash commands over HTTP — no WebSocket required).
 
 ```
 /ask:Explain recursion simply
